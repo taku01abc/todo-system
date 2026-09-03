@@ -186,6 +186,7 @@
       height: 22px;
       margin-right: 12px;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .custom-checkbox input {
@@ -235,6 +236,7 @@
       flex: 1;
       font-size: 1rem;
       transition: color 0.2s, text-decoration 0.2s;
+      word-break: break-all;
     }
 
     .completed .task-text {
@@ -248,6 +250,7 @@
       color: var(--text-sub);
       cursor: pointer;
       font-size: 0.9rem;
+      margin-left: 0.5rem;
     }
 
     .delete-btn:hover {
@@ -334,7 +337,9 @@
   </header>
 
   <main>
+    <!-- ホームビュー -->
     <section id="homeView" class="view-section active">
+      <!-- 前日の未達成タスク -->
       <div id="yesterdayContainer" style="display: none;">
         <div class="task-card yesterday-section">
           <h3 style="color: var(--danger); font-size: 1rem; margin-bottom: 1rem;">⚠️ 前日の未達成タスク</h3>
@@ -342,16 +347,18 @@
         </div>
       </div>
 
+      <!-- 本日のタスク -->
       <div class="task-card">
         <h2>本日のタスク</h2>
         <form class="add-task-form" id="addTaskForm">
-          <input type="text" id="taskInput" placeholder="新しいタスクを入力..." required>
+          <input type="text" id="taskInput" placeholder="新しいタスクを追加..." required>
           <button type="submit">追加</button>
         </form>
         <ul class="task-list" id="todayTaskList"></ul>
       </div>
     </section>
 
+    <!-- カレンダービュー -->
     <section id="calendarView" class="view-section">
       <h2>カレンダー</h2>
       <div class="calendar-header">
@@ -369,8 +376,86 @@
   </main>
 
   <script>
+    // --- 曜日ごとのデフォルトタスク設定 ---
+    const DEFAULT_SCHEDULE = {
+      1: [ // 月曜日
+        "英語実戦演習T 授業",
+        "化学②T(完成) 授業",
+        "化学①T(完成) 授業",
+        "数学②T(基礎) 復習",
+        "数学②T(完成) 予習",
+        "化学②T(完成) 復習",
+        "化学②T(完成) 復習"
+      ],
+      2: [ // 火曜日
+        "数学②T(完成) 授業",
+        "現代文演習",
+        "古文演習",
+        "漢文演習",
+        "数学③T(基礎) 復習",
+        "数学③T(完成) 予習",
+        "物理①T(完成) 予習",
+        "物理②T(完成) 予習",
+        "数学②T(完成) 復習"
+      ],
+      3: [ // 水曜日
+        "数学③T(完成) 授業",
+        "物理①T(完成) 授業",
+        "物理②T(完成) 授業",
+        "英語②T(完成) 予習",
+        "英語②T(完成) テスト勉強",
+        "英語③T(完成) 予習",
+        "理系数学実演T 予習",
+        "数学③T(完成) 復習",
+        "物理①T(完成) 復習",
+        "物理②T(完成) 復習"
+      ],
+      4: [ // 木曜日
+        "英語②T(完成) 授業",
+        "英語③T(完成) 授業",
+        "理系数学実演T 授業",
+        "情報Ⅰ演習",
+        "英語①T(完成) 予習",
+        "数学①T(基礎) 復習",
+        "数学①T(完成) 予習",
+        "英語②T(完成) 復習",
+        "英語③T(完成) 復習",
+        "理系数学実演T 復習"
+      ],
+      5: [ // 金曜日
+        "英語①T(完成) 授業",
+        "数学①T(完成) 授業",
+        "政経(基礎) 復習",
+        "物理T(基礎) 復習",
+        "化学T(基礎) 復習",
+        "英語①T(完成) 復習",
+        "数学①T(完成) 復習"
+      ],
+      6: [ // 土曜日
+        "政経演習",
+        "物理T(基礎) 復習",
+        "化学T(基礎) 復習",
+        "英文法T 復習",
+        "過去問演習(数学)",
+        "過去問演習(英語)"
+      ],
+      0: [ // 日曜日
+        "英語実戦演習T 予習",
+        "化学②T(完成) 予習",
+        "化学①T(完成) 予習",
+        "物理T(基礎) 復習",
+        "化学T(基礎) 復習",
+        "過去問演習(理科)"
+      ]
+    };
+
     // --- データ管理 ---
-    const getFormattedDate = (date) => date.toISOString().split('T')[0];
+    const getFormattedDate = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
 
     const getTodayStr = () => getFormattedDate(new Date());
     const getYesterdayStr = () => {
@@ -383,6 +468,25 @@
 
     function saveStore() {
       localStorage.setItem('intellectual_todo_store', JSON.stringify(store));
+    }
+
+    // 指定した日付のタスクを取得（まだデータが無ければデフォルトタスクを生成）
+    function getTasksForDate(dateStr) {
+      if (!store[dateStr]) {
+        // YYYY-MM-DD から曜日(0:日 ~ 6:土)を取得
+        const parts = dateStr.split('-');
+        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+        const dayOfWeek = dateObj.getDay();
+
+        const defaultList = DEFAULT_SCHEDULE[dayOfWeek] || [];
+        store[dateStr] = defaultList.map((text, idx) => ({
+          id: Date.now() + idx,
+          text: text,
+          completed: false
+        }));
+        saveStore();
+      }
+      return store[dateStr];
     }
 
     // --- DOM要素 ---
@@ -438,7 +542,7 @@
       checkbox.addEventListener('change', () => {
         task.completed = checkbox.checked;
         saveStore();
-        renderHome(); // 表示更新
+        renderHome();
       });
 
       // 削除イベント
@@ -471,9 +575,9 @@
       if (!text) return;
 
       const today = getTodayStr();
-      if (!store[today]) store[today] = [];
+      const tasks = getTasksForDate(today);
 
-      store[today].push({ id: Date.now(), text: text, completed: false });
+      tasks.push({ id: Date.now(), text: text, completed: false });
       saveStore();
       taskInput.value = '';
       renderHome();
@@ -485,14 +589,14 @@
 
       // 1. 本日のタスクを描画
       todayTaskList.innerHTML = '';
-      const todayTasks = store[today] || [];
+      const todayTasks = getTasksForDate(today);
       todayTasks.forEach(task => {
         todayTaskList.appendChild(createTaskElement(task, today));
       });
 
       // 2. 前日の未達成タスクを描画
       yesterdayTaskList.innerHTML = '';
-      const yesterdayTasks = store[yesterday] || [];
+      const yesterdayTasks = getTasksForDate(yesterday);
       const uncompletedYesterday = yesterdayTasks.filter(t => !t.completed);
 
       if (uncompletedYesterday.length > 0) {
@@ -549,14 +653,13 @@
 
       // 日付セル
       for (let day = 1; day <= daysInMonth; day++) {
-        const dateObj = new Date(year, month, day);
-        // 時差ズレ対策のためローカルフォーマット生成
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         
         const cell = document.createElement('div');
         cell.className = 'calendar-day';
         
-        const tasks = store[dateStr] || [];
+        // カレンダー表示時もデータが無ければ自動生成
+        const tasks = getTasksForDate(dateStr);
         const completedCount = tasks.filter(t => t.completed).length;
         
         let statusText = '';
@@ -581,7 +684,7 @@
       title.textContent = `${dateStr} のタスク`;
       list.innerHTML = '';
 
-      const tasks = store[dateStr] || [];
+      const tasks = getTasksForDate(dateStr);
       if (tasks.length === 0) {
         list.innerHTML = '<li style="color: var(--text-sub);">タスクはありません</li>';
         return;
@@ -592,7 +695,7 @@
       });
     }
 
-    // 初期化表示
+    // 初期表示
     renderHome();
   </script>
 </body>
