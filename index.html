@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intellectual Todo App</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --primary-blue: #2563eb;
+      --accent-blue: #38bdf8;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', meiryo, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ヘッダー */
+    header {
+      background-color: var(--card-bg);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      position: relative;
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .menu-btn:hover {
+      background-color: var(--card-border);
+    }
+
+    /* ドロワーメニュー */
+    .nav-menu {
+      position: absolute;
+      top: 100%;
+      left: 2rem;
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      width: 200px;
+      display: none;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      z-index: 100;
+    }
+
+    .nav-menu.active {
+      display: block;
+    }
+
+    .nav-menu ul {
+      list-style: none;
+    }
+
+    .nav-menu li a {
+      display: block;
+      padding: 0.8rem 1.2rem;
+      color: var(--text-main);
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .nav-menu li a:hover {
+      background-color: var(--card-border);
+      color: var(--accent-blue);
+    }
+
+    /* メインコンテンツ */
+    main {
+      flex: 1;
+      max-width: 800px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .view-section {
+      display: none;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    h2 {
+      font-weight: 400;
+      letter-spacing: 1px;
+      margin-bottom: 1.5rem;
+      color: var(--accent-blue);
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.5rem;
+    }
+
+    /* タスクエリア */
+    .task-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .add-task-form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .add-task-form input {
+      flex: 1;
+      background-color: var(--bg-color);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      outline: none;
+    }
+
+    .add-task-form input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .add-task-form button {
+      background-color: var(--primary-blue);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: opacity 0.2s;
+    }
+
+    .add-task-form button:hover {
+      opacity: 0.9;
+    }
+
+    /* カスタムチェックボックス */
+    .task-list {
+      list-style: none;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .task-item:last-child {
+      border-bottom: none;
+    }
+
+    .custom-checkbox {
+      position: relative;
+      width: 22px;
+      height: 22px;
+      margin-right: 12px;
+      cursor: pointer;
+    }
+
+    .custom-checkbox input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .checkmark {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 22px;
+      width: 22px;
+      background-color: transparent;
+      border: 2px solid var(--accent-blue);
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .custom-checkbox:hover input ~ .checkmark {
+      background-color: rgba(56, 189, 248, 0.1);
+    }
+
+    .custom-checkbox input:checked ~ .checkmark {
+      background-color: var(--accent-blue);
+    }
+
+    .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+      left: 7px;
+      top: 3px;
+      width: 5px;
+      height: 10px;
+      border: solid var(--bg-color);
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .custom-checkbox input:checked ~ .checkmark:after {
+      display: block;
+    }
+
+    .task-text {
+      flex: 1;
+      font-size: 1rem;
+      transition: color 0.2s, text-decoration 0.2s;
+    }
+
+    .completed .task-text {
+      color: var(--text-sub);
+      text-decoration: line-through;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .delete-btn:hover {
+      color: var(--danger);
+    }
+
+    /* 前日の未達成タスク用スタイル */
+    .yesterday-section {
+      border-left: 3px solid var(--danger);
+    }
+
+    /* カレンダー */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      background-color: var(--card-bg);
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+
+    .calendar-day-head {
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      background-color: var(--bg-color);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 0.5rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s;
+    }
+
+    .calendar-day:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .calendar-day.empty {
+      background-color: transparent;
+      border: none;
+      cursor: default;
+    }
+
+    .calendar-day .date-num {
+      font-size: 0.9rem;
+    }
+
+    .calendar-day .status-dots {
+      font-size: 0.75rem;
+      color: var(--accent-blue);
+    }
+
+    .selected-date-tasks {
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="menu-btn" id="menuToggle">☰ メニュー</button>
+    <nav class="nav-menu" id="navMenu">
+      <ul>
+        <li><a href="#" id="linkHome">ホーム（本日のタスク）</a></li>
+        <li><a href="#" id="linkCalendar">カレンダー</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section id="homeView" class="view-section active">
+      <div id="yesterdayContainer" style="display: none;">
+        <div class="task-card yesterday-section">
+          <h3 style="color: var(--danger); font-size: 1rem; margin-bottom: 1rem;">⚠️ 前日の未達成タスク</h3>
+          <ul class="task-list" id="yesterdayTaskList"></ul>
+        </div>
+      </div>
+
+      <div class="task-card">
+        <h2>本日のタスク</h2>
+        <form class="add-task-form" id="addTaskForm">
+          <input type="text" id="taskInput" placeholder="新しいタスクを入力..." required>
+          <button type="submit">追加</button>
+        </form>
+        <ul class="task-list" id="todayTaskList"></ul>
+      </div>
+    </section>
+
+    <section id="calendarView" class="view-section">
+      <h2>カレンダー</h2>
+      <div class="calendar-header">
+        <button class="menu-btn" id="prevMonth">&lt; 前月</button>
+        <h3 id="calendarMonthYear"></h3>
+        <button class="menu-btn" id="nextMonth">次月 &gt;</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+
+      <div class="task-card selected-date-tasks" id="selectedDateContainer" style="margin-top:2rem;">
+        <h3 id="selectedDateTitle" style="margin-bottom:1rem; color:var(--accent-blue);">日付を選択してください</h3>
+        <ul class="task-list" id="selectedDateTaskList"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // --- データ管理 ---
+    const getFormattedDate = (date) => date.toISOString().split('T')[0];
+
+    const getTodayStr = () => getFormattedDate(new Date());
+    const getYesterdayStr = () => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return getFormattedDate(d);
+    };
+
+    let store = JSON.parse(localStorage.getItem('intellectual_todo_store')) || {};
+
+    function saveStore() {
+      localStorage.setItem('intellectual_todo_store', JSON.stringify(store));
+    }
+
+    // --- DOM要素 ---
+    const menuToggle = document.getElementById('menuToggle');
+    const navMenu = document.getElementById('navMenu');
+    const linkHome = document.getElementById('linkHome');
+    const linkCalendar = document.getElementById('linkCalendar');
+    const homeView = document.getElementById('homeView');
+    const calendarView = document.getElementById('calendarView');
+
+    // --- メニュー切り替え ---
+    menuToggle.addEventListener('click', () => navMenu.classList.toggle('active'));
+
+    linkHome.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('home');
+    });
+
+    linkCalendar.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('calendar');
+    });
+
+    function switchView(viewName) {
+      navMenu.classList.remove('active');
+      if (viewName === 'home') {
+        homeView.classList.add('active');
+        calendarView.classList.remove('active');
+        renderHome();
+      } else {
+        homeView.classList.remove('active');
+        calendarView.classList.add('active');
+        renderCalendar();
+      }
+    }
+
+    // --- タスク描画ヘルパー ---
+    function createTaskElement(task, dateStr) {
+      const li = document.createElement('li');
+      li.className = `task-item ${task.completed ? 'completed' : ''}`;
+      
+      li.innerHTML = `
+        <label class="custom-checkbox">
+          <input type="checkbox" ${task.completed ? 'checked' : ''}>
+          <span class="checkmark"></span>
+        </label>
+        <span class="task-text">${escapeHtml(task.text)}</span>
+        <button class="delete-btn">削除</button>
+      `;
+
+      // チェックイベント
+      const checkbox = li.querySelector('input');
+      checkbox.addEventListener('change', () => {
+        task.completed = checkbox.checked;
+        saveStore();
+        renderHome(); // 表示更新
+      });
+
+      // 削除イベント
+      const deleteBtn = li.querySelector('.delete-btn');
+      deleteBtn.addEventListener('click', () => {
+        store[dateStr] = store[dateStr].filter(t => t.id !== task.id);
+        saveStore();
+        renderHome();
+      });
+
+      return li;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[m]);
+    }
+
+    // --- ホーム画面制御 ---
+    const addTaskForm = document.getElementById('addTaskForm');
+    const taskInput = document.getElementById('taskInput');
+    const todayTaskList = document.getElementById('todayTaskList');
+    const yesterdayTaskList = document.getElementById('yesterdayTaskList');
+    const yesterdayContainer = document.getElementById('yesterdayContainer');
+
+    addTaskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = taskInput.value.trim();
+      if (!text) return;
+
+      const today = getTodayStr();
+      if (!store[today]) store[today] = [];
+
+      store[today].push({ id: Date.now(), text: text, completed: false });
+      saveStore();
+      taskInput.value = '';
+      renderHome();
+    });
+
+    function renderHome() {
+      const today = getTodayStr();
+      const yesterday = getYesterdayStr();
+
+      // 1. 本日のタスクを描画
+      todayTaskList.innerHTML = '';
+      const todayTasks = store[today] || [];
+      todayTasks.forEach(task => {
+        todayTaskList.appendChild(createTaskElement(task, today));
+      });
+
+      // 2. 前日の未達成タスクを描画
+      yesterdayTaskList.innerHTML = '';
+      const yesterdayTasks = store[yesterday] || [];
+      const uncompletedYesterday = yesterdayTasks.filter(t => !t.completed);
+
+      if (uncompletedYesterday.length > 0) {
+        yesterdayContainer.style.display = 'block';
+        uncompletedYesterday.forEach(task => {
+          yesterdayTaskList.appendChild(createTaskElement(task, yesterday));
+        });
+      } else {
+        yesterdayContainer.style.display = 'none';
+      }
+    }
+
+    // --- カレンダー画面制御 ---
+    let currentCalDate = new Date();
+
+    document.getElementById('prevMonth').addEventListener('click', () => {
+      currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+      currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    function renderCalendar() {
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+
+      document.getElementById('calendarMonthYear').textContent = `${year}年 ${month + 1}月`;
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      // 曜日ヘッダー
+      const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+      dayNames.forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'calendar-day-head';
+        h.textContent = d;
+        grid.appendChild(h);
+      });
+
+      // カレンダーの日付計算
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // 空白セル
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-day empty';
+        grid.appendChild(empty);
+      }
+
+      // 日付セル
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
+        // 時差ズレ対策のためローカルフォーマット生成
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day';
+        
+        const tasks = store[dateStr] || [];
+        const completedCount = tasks.filter(t => t.completed).length;
+        
+        let statusText = '';
+        if (tasks.length > 0) {
+          statusText = `${completedCount}/${tasks.length}`;
+        }
+
+        cell.innerHTML = `
+          <span class="date-num">${day}</span>
+          <span class="status-dots">${statusText}</span>
+        `;
+
+        cell.addEventListener('click', () => showSelectedDateTasks(dateStr));
+        grid.appendChild(cell);
+      }
+    }
+
+    function showSelectedDateTasks(dateStr) {
+      const title = document.getElementById('selectedDateTitle');
+      const list = document.getElementById('selectedDateTaskList');
+      
+      title.textContent = `${dateStr} のタスク`;
+      list.innerHTML = '';
+
+      const tasks = store[dateStr] || [];
+      if (tasks.length === 0) {
+        list.innerHTML = '<li style="color: var(--text-sub);">タスクはありません</li>';
+        return;
+      }
+
+      tasks.forEach(task => {
+        list.appendChild(createTaskElement(task, dateStr));
+      });
+    }
+
+    // 初期化表示
+    renderHome();
+  </script>
+</body>
+</html>
